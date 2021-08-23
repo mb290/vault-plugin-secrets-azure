@@ -18,12 +18,14 @@ const (
 // defaults for roles. The zero value is useful and results in
 // environments variable and system defaults being used.
 type azureConfig struct {
-	SubscriptionID string `json:"subscription_id"`
-	TenantID       string `json:"tenant_id"`
-	ClientID       string `json:"client_id"`
-	ClientSecret   string `json:"client_secret"`
-	Environment    string `json:"environment"`
-	PasswordPolicy string `json:"password_policy"`
+	SubscriptionID      string `json:"subscription_id"`
+	TenantID            string `json:"tenant_id"`
+	ClientID            string `json:"client_id"`
+	CertificatePath     string `json:"certificate_path"`
+	CertificatePassword string `json:"certificate_password"`
+	ClientSecret        string `json:"client_secret"`
+	Environment         string `json:"environment"`
+	PasswordPolicy      string `json:"password_policy"`
 }
 
 func pathConfig(b *azureSecretBackend) *framework.Path {
@@ -54,6 +56,16 @@ func pathConfig(b *azureSecretBackend) *framework.Path {
 				Type: framework.TypeString,
 				Description: `The OAuth2 client secret to connect to Azure.
 				This value can also be provided with the AZURE_CLIENT_SECRET environment variable.`,
+			},
+			"certificate_path": &framework.FieldSchema{
+				Type: framework.TypeString,
+				Description: `The path to the Client Certificate associated with the Service Principal for use when authenticating as a Service Principal using a Client Certificate.
+				This value can also be provided with the AZURE_CERTIFICATE_PATH environment variable.`,
+			},
+			"certificate_password": &framework.FieldSchema{
+				Type: framework.TypeString,
+				Description: `The password associated with the Client Certificate. For use when authenticating as a Service Principal using a Client Certificate.
+				This value can also be provided with the ARM_CLIENT_CERTIFICATE_PASSWORD environment variable.`,
 			},
 			"password_policy": &framework.FieldSchema{
 				Type:        framework.TypeString,
@@ -112,6 +124,14 @@ func (b *azureSecretBackend) pathConfigWrite(ctx context.Context, req *logical.R
 		config.ClientSecret = clientSecret.(string)
 	}
 
+	if certificatePath, ok := data.GetOk("certificate_path"); ok {
+		config.CertificatePath = certificatePath.(string)
+	}
+
+	if certificatePassword, ok := data.GetOk("certificate_password"); ok {
+		config.CertificatePassword = certificatePassword.(string)
+	}
+
 	config.PasswordPolicy = data.Get("password_policy").(string)
 
 	if merr.ErrorOrNil() != nil {
@@ -136,10 +156,12 @@ func (b *azureSecretBackend) pathConfigRead(ctx context.Context, req *logical.Re
 
 	resp := &logical.Response{
 		Data: map[string]interface{}{
-			"subscription_id": config.SubscriptionID,
-			"tenant_id":       config.TenantID,
-			"environment":     config.Environment,
-			"client_id":       config.ClientID,
+			"subscription_id":      config.SubscriptionID,
+			"tenant_id":            config.TenantID,
+			"environment":          config.Environment,
+			"client_id":            config.ClientID,
+			"certificate_path":     config.ClientID,
+			"certificate_password": config.ClientID,
 		},
 	}
 	return resp, nil
